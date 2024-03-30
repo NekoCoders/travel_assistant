@@ -24,7 +24,7 @@ def ask_question(product_offers: List[Product]) -> Tuple[str, List[str]]:
         ]
     )
 
-    prompt = prompt.partial(descriptions=f"{sep}".join([p.description for p in product_offers]), sep=sep)
+    prompt = prompt.partial(descriptions=f"{sep}".join([p.full_text for p in product_offers]), sep=sep)
 
     chain = prompt | llm | StrOutputParser()
 

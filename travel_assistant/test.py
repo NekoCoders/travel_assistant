@@ -9,12 +9,12 @@ def main():
     database.load()
     database.save()
 
-    query = "Прогулка в парке с собакой"
+    query = "Кладбище кораблей"
 
     print(query)
 
     results = database.search_best_offers(query, 4)
-    print(json.dumps([p.description for p in results], ensure_ascii=False, indent=2))
+    print(json.dumps([p.full_text for p in results], ensure_ascii=False, indent=2))
 
     question, options = ask_question(results)
 
