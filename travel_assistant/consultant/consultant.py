@@ -14,22 +14,25 @@ from travel_assistant.common.gigachat_api import AUTH_DATA
 def ask_question(product_offers: List[Product]) -> Tuple[str, List[str]]:
     llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False)
 
+    sep = "\n----------------------------------\n"
+
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", "Ты - туристический консультант, который предлагает клиентам идеи для прогулок и маршрутов, где можно посмотреть разные достопримечательности."),
-            ("ai", "Я подобрал для вас несколько интересных вариантов, куда можно пойти: {descriptions}"),
-            ("human", "Спасибо, а расскажи, чем эти варианты отличаются?"),
+            ("ai", "Я подобрал для вас несколько интересных вариантов, куда можно пойти: {sep}{descriptions}{sep}. Все это разные места."),
+            ("human", "Спасибо! А расскажи, чем эти варианты отличаются?"),
         ]
     )
 
-    prompt = prompt.partial(descriptions="\n\n".join([p.description for p in product_offers]))
+    prompt = prompt.partial(descriptions=f"{sep}".join([p.description for p in product_offers]), sep=sep)
 
     chain = prompt | llm | StrOutputParser()
 
     response = chain.invoke({})
+    print(response)
 
     prompt.append(AIMessage(response))
-    prompt.append(HumanMessage("Спроси у меня что-нибудь, чтобы мне было проще выбрать"))
+    prompt.append(HumanMessage("Спроси у меня что-нибудь, чтобы мне было проще выбрать что-то похожее, но может быть другое, что мне нравится... Постарайся не копировать и не использовать текст из описаний и прояви фантазию!"))
     response = chain.invoke({})
 
     question = response

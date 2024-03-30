@@ -9,7 +9,7 @@ def main():
     database.load()
     database.save()
 
-    query = "Спектакль"
+    query = "Прогулка в парке с собакой"
 
     print(query)
 
