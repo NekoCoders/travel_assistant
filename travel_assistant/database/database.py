@@ -1,11 +1,11 @@
 import json
-from typing import List, Tuple, Dict
+from typing import List, Dict
 
 import numpy as np
 import tqdm
 from sklearn.cluster import KMeans
 
-from travel_assistant.common.types import ProductID, Product
+from travel_assistant.common.custom_types import ProductID, Product
 from travel_assistant.database.similarity_model import SimilarityModel
 
 
@@ -52,26 +52,20 @@ class ProductDatabase:
         tops = [tops[i] for i in np.argsort([scores[t[0]] for t in tops])[::-1]]
         return tops
 
-    def search_offers(self, query: str, n_groups: int) -> List[Tuple[str, List[Product]]]:
+    def search_offers(self, query: str, n_groups: int) -> List[List[Product]]:
         query_emb = self.encoder.encode(query)
         scores = self._cosine_sim(query_emb, self.product_embs)
         clusters = self._get_clusters(scores, n_groups)
+
         top_descs = [
-            self.products[self.product_ids[cl[0]]].full_text
+            [
+                self.products[self.product_ids[cli]]
+                for cli in cl
+            ]
             for cl in clusters
         ]
         return top_descs
 
-
-def main():
-    database = ProductDatabase()
-    database.load()
-    database.save()
-
-    query = "Спектакль"
-    results = database.search_offers(query, 4)
-    print(json.dumps(results, indent=2, ensure_ascii=False))
-
-
-if __name__ == '__main__':
-    main()
+    def search_best_offers(self, query: str, n_groups: int) -> List[Product]:
+        offers = self.search_offers(query, n_groups)
+        return [p[0] for p in offers]
