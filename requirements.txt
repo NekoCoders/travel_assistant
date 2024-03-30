@@ -1,1 +1,4 @@
 sentence-transformers
+pandas
+scipy
+scikit-learn
