@@ -29,7 +29,7 @@ def ask_question(product_offers: List[Product]) -> Tuple[str, List[str]]:
     chain = prompt | llm | StrOutputParser()
 
     response = chain.invoke({})
-    print(response)
+    # print(response)
 
     prompt.append(AIMessage(response))
     prompt.append(HumanMessage("Спроси у меня что-нибудь, чтобы мне было проще выбрать что-то похожее, но может быть другое, что мне нравится... Постарайся не копировать и не использовать текст из описаний и прояви фантазию!"))
