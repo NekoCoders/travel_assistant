@@ -3,6 +3,8 @@ from collections import defaultdict
 import telebot
 from telebot import TeleBot
 
+from travel_assistant.consultant.consultant import Consultant
+
 TOKEN = "7054321594:AAE5lT7J_wIL76aTwql1qzpSocnOriRPB50"
 
 
@@ -14,6 +16,7 @@ def start_listening_server(bot: TeleBot):
 if __name__ == "__main__":
     context_by_chat_id: dict[str, list] = defaultdict(list)
     bot = telebot.TeleBot(TOKEN, threaded=False)
+    consultant = Consultant()
 
     @bot.message_handler(content_types=["text"])
     def answer_message(message):
@@ -22,8 +25,9 @@ if __name__ == "__main__":
                 context_by_chat_id[message.chat.id] = []
                 text_to_send = "Здравствуйте, я Борис! Давайте я помогу вам подобрать досуг. Что Вас интересует?"
             else:
-                # text_to_send, new_context_by_chat_id = get_message_and_new_context(message.text, old_context)
-                text_to_send = "123"
+                old_context = context_by_chat_id[message.chat.id]
+                text_to_send, new_context_by_chat_id = consultant.chat_single(old_context, message.text)
+                context_by_chat_id[message.chat.id] = new_context_by_chat_id
             bot.send_message(
                 message.chat.id, text_to_send,
             )
