@@ -19,31 +19,31 @@ class Consultant:
         self.database.load()
 
     def collect_data(self, history: ChatPromptTemplate):
-        key_parameters = {
-            "city": {
-                "description": "Город, в которм происходит мероприятие, или в котором расположен объект",
-                "examples": ["Москва", "Краснодар", "Мурманск"],
-            },
-            "vacation_kind": {
-                "description": "Вид отдыха по типу занятия",
-                "examples": ["активный", "экстрим", "пляжный", "прогулка", "семейный"],
-            },
-            "duration": {
-                "description": "Продолжительность отдыха или прогулки, которую планирует клиент, в днях",
-                "examples": [],
-            },
-            "start_date": {
-                "description": "Дата начала путешествия",
-                "examples": [],
-            },
-        }
-
-        formatted_schema = "{\n"
-        for key, data in key_parameters.items():
-            args = '" | "'.join(data["examples"])
-            block = f'  //{data["description"]}\n  "{key}": // "{args}" | "" | List[a, b, c, ...] | ...\n\n'
-            formatted_schema += block
-        formatted_schema += "}"
+        # key_parameters = {
+        #     "city": {
+        #         "description": "Город, в которм происходит мероприятие, или в котором расположен объект",
+        #         "examples": ["Москва", "Краснодар", "Мурманск"],
+        #     },
+        #     "vacation_kind": {
+        #         "description": "Вид отдыха по типу занятия",
+        #         "examples": ["активный", "экстрим", "пляжный", "прогулка", "семейный"],
+        #     },
+        #     "duration": {
+        #         "description": "Продолжительность отдыха или прогулки, которую планирует клиент, в днях",
+        #         "examples": [],
+        #     },
+        #     "start_date": {
+        #         "description": "Дата начала путешествия",
+        #         "examples": [],
+        #     },
+        # }
+        #
+        # formatted_schema = "{\n"
+        # for key, data in key_parameters.items():
+        #     args = '" | "'.join(data["examples"])
+        #     block = f'  //{data["description"]}\n  "{key}": // "{args}" | "" | List[a, b, c, ...] | ...\n\n'
+        #     formatted_schema += block
+        # formatted_schema += "}"
         # print(formatted_schema)
         # formatted_schema = ""
         # formatted_schema += "city -- Город, в которм происходит мероприятие, или в котором расположен объект\n"
@@ -52,7 +52,9 @@ class Consultant:
 
         prompt = history + ChatPromptTemplate.from_messages([
             ("ai", "Спасибо за ваш ответ, я должен его учесть, чтобы предложить вам подходящие варианты отдыха."),
-            ("human", "Предлагаю тебе собрать всю нужную информацию о том, какой тур мне нужен, из истории нашего диалога и заполнить ее в виде JSON объекта."),
+            # ("human", "Предлагаю тебе собрать всю нужную информацию о том, какой тур мне нужен, из истории нашего диалога, и кратко ее изложить. Постарайся описать идеальное место для меня"),
+            # ("human", "Сначала собери всю нужную информацию из истории нашего диалога о том, какой отдых мне нужен. Постарайся описать идеальное место, в которое мне бы было интересно отправиться. Опиши это место. Помни, что ты предлагаешь только поездки и прогулки по России."),
+            ("human", "Кстати, исходя из истории нашего диалога о том, какой отдых в России мне нужен, как ты видишь идеальное место в России, в которое мне бы было интересно отправиться? Опиши это место. Что ты думаешь об этом месте? Что в нем есть интересного и удивительного?"),
         ])
         # prompt = prompt.partial(schema=formatted_schema)
 
@@ -68,24 +70,25 @@ class Consultant:
         # collected_data = json.loads(response)
         collected_data = response
 
-        prompt2 = ChatPromptTemplate.from_messages([
-            ("system", "Опиши примерно путешествие по России или прогулку в какое-то место в городе России, которое будет удовлетворять указанным параметрам"),
-            # ("human", "Город: {city}, Тип отдыха: {vacation_kind}, Продолжительность: {duration}"),
-            HumanMessage(f"{collected_data}"),
-        # ]).partial(**collected_data)
-        ])
-        chain2 = prompt2 | self.llm | StrOutputParser()
-        response = chain2.invoke({})
-        # print(f"My thoughts: --->>>\n{response}")
+        # prompt2 = ChatPromptTemplate.from_messages([
+        #     ("system", "Опиши примерно путешествие по России или прогулку в какое-то место в городе России, которое будет удовлетворять указанным параметрам"),
+        #     # ("human", "Город: {city}, Тип отдыха: {vacation_kind}, Продолжительность: {duration}"),
+        #     HumanMessage(f"{collected_data}"),
+        # # ]).partial(**collected_data)
+        # ])
+        # chain2 = prompt2 | self.llm | StrOutputParser()
+        # response = chain2.invoke({})
+        # # print(f"My thoughts: --->>>\n{response}")
+        # query = response
         query = response
+        recommendation = query
 
         products = self.database.search_best_offers(query)
-        print(json.dumps([p.full_text for p in products], indent=2, ensure_ascii=False))
         question, options = self.ask_question(products)
 
         # print(question)
         # print(options)
-        return question, options
+        return question, options, recommendation, products
 
     def chat(self):
         start_message = "Добрый день! Я помогу вам подобрать подходящий тур! Что вас интересует?"
@@ -127,12 +130,14 @@ class Consultant:
             message = input()
             prompt.append(("human", message))
 
-            response = chain.invoke({})
-            print(response)
-            prompt.append(("ai", response))
+            # response = chain.invoke({})
+            # print(response)
+            # prompt.append(("ai", response))
 
-            question, options = self.collect_data(prompt)
+            question, options, recommendation, products = self.collect_data(prompt)
             # prompt.append(("ai", question))
+            print(recommendation)
+            print(json.dumps([p.full_text for p in products], indent=2, ensure_ascii=False))
             print(question)
             print(options)
 
