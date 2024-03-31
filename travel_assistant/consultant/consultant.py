@@ -17,6 +17,7 @@ class Consultant:
         self.llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False)
         self.database = ProductDatabase()
         self.database.load()
+        self.database.save()
 
     def collect_data(self, history: ChatPromptTemplate):
         # key_parameters = {

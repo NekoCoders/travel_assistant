@@ -41,18 +41,22 @@ class ProductDatabase:
     def _cosine_sim(self, a: np.ndarray, b: np.ndarray, axis=-1) -> np.ndarray:
         return (a * b).sum(axis=axis) / (np.linalg.norm(a, axis=axis) * np.linalg.norm(b, axis=axis))
 
-    def _get_clusters(self, scores, n_clusters: int, temperature=0.2):
-        idxs = np.argsort(scores)[::-1]
+    def _get_clusters(self, scores, n_clusters: int, temperature=0.5, topk=1000):
+        idxs = np.argsort(scores)[::-1][:topk]
+        scores_base = scores
+        scores = scores[idxs]
+        product_embs = self.product_embs[idxs]
         weights = np.exp((scores - scores.max()) / temperature)
-        kmeans = KMeans(n_clusters=n_clusters).fit(self.product_embs, sample_weight=weights)
+        kmeans = KMeans(n_clusters=n_clusters).fit(product_embs, sample_weight=weights)
         tops = [[] for _ in range(n_clusters)]
         labels = kmeans.labels_[::-1]
         for i, label in zip(idxs, labels):
             tops[label].append(i)
-        tops = [tops[i] for i in np.argsort([scores[t[0]] for t in tops])[::-1]]
+        tops = [tops[i] for i in np.argsort([scores_base[t[0]] for t in tops])[::-1]]
+        # print([scores_base[tp[0]] for tp in tops])
         return tops
 
-    def search_offers(self, query: str, n_groups: int = 8) -> List[List[Product]]:
+    def search_offers(self, query: str, n_groups: int = 4) -> List[List[Product]]:
         query_emb = self.encoder.encode(query)
         scores = self._cosine_sim(query_emb, self.product_embs)
         clusters = self._get_clusters(scores, n_groups)
@@ -66,6 +70,6 @@ class ProductDatabase:
         ]
         return top_descs
 
-    def search_best_offers(self, query: str, n_groups: int = 8) -> List[Product]:
+    def search_best_offers(self, query: str, n_groups: int = 4) -> List[Product]:
         offers = self.search_offers(query, n_groups)
         return [p[0] for p in offers]
