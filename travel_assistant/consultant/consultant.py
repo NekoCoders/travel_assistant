@@ -92,6 +92,14 @@ class Consultant:
         return question, options, recommendation, products
 
     def chat(self):
+        context = []
+        print("Добрый день! Я помогу вам подобрать подходящий тур! Что вас интересует?")
+        while True:
+            message = input()
+            output_message, context = self.chat_single(context, message)
+            print(output_message)
+
+    def chat_single(self, context: List[Tuple[str, str]], user_message: str) -> Tuple[str, List[Tuple[str, str]]]:
         start_message = "Добрый день! Я помогу вам подобрать подходящий тур! Что вас интересует?"
 
         prompt = ChatPromptTemplate.from_messages([
@@ -99,57 +107,28 @@ class Consultant:
             ("ai", start_message),
         ])
 
-        chain = prompt | self.llm | StrOutputParser()
+        for message in context:
+            prompt.append(message)
 
-        messages = [
-            "я хочу на море",
-            "черное море",
-            "Сочи и Абхазия",
-            "я бы еще хотел проверить, что на курорте сейчас пляжный сезон",
-            "кстати я хочу поехать на две недели",
+        prompt.append(("human", user_message))
+
+        question, options, recommendation, products = self.collect_data(prompt)
+
+        prompt.append(("ai", question))
+
+        output_message = ""
+        output_message += f"{recommendation}\n"
+        output_message += json.dumps([f"{p.title}. {', '.join(p.regions)} | https://russpass.ru/event/{p.id}" for p in products],
+                         indent=2, ensure_ascii=False) + "\n"
+        output_message += f"{question}\n"
+        output_message += f"{options}"
+
+        context = context + [
+            ("human", user_message),
+            ("ai", question)
         ]
 
-        # prompt.append(("human", messages[0]))
-
-        print(start_message)
-        # message = input()
-        # prompt.append(("human", message))
-        #
-        # response = chain.invoke({})
-        # print(response)
-        # prompt.append(("ai", response))
-        # query = response
-        #
-        # products = self.database.search_best_offers(query)
-        # print(json.dumps([p.full_text for p in products], indent=2, ensure_ascii=False))
-        # question, options = self.ask_question(products)
-        # print(question)
-        # print(options)
-
-        # for message in messages:
-        while True:
-            message = input()
-            prompt.append(("human", message))
-
-            # response = chain.invoke({})
-            # print(response)
-            # prompt.append(("ai", response))
-
-            question, options, recommendation, products = self.collect_data(prompt)
-
-            prompt.append(("ai", question))
-            print(recommendation)
-            print(json.dumps([f"{p.title}. {', '.join(p.regions)} | https://russpass.ru/event/{p.id}" for p in products], indent=2, ensure_ascii=False))
-            print(question)
-            print(options)
-
-            # prompt.append(("human", options[0]))
-
-            # response = chain.invoke({})
-            # print(response)
-            # prompt.append(("ai", response))
-
-        print(prompt.format())
+        return output_message, context
 
     def ask_question(self, history, product_offers: List[Product], query) -> Tuple[str, List[str]]:
         sep = "\n\n"
