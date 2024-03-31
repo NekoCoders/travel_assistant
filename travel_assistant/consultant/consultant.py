@@ -14,7 +14,7 @@ from travel_assistant.database.database import ProductDatabase
 
 class Consultant:
     def __init__(self):
-        self.llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False)
+        self.llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False, max_tokens=256)
         self.database = ProductDatabase()
         self.database.load()
         self.database.save()
@@ -55,7 +55,7 @@ class Consultant:
             ("ai", "Спасибо за ваш ответ, я должен его учесть, чтобы предложить вам подходящие варианты отдыха."),
             # ("human", "Предлагаю тебе собрать всю нужную информацию о том, какой тур мне нужен, из истории нашего диалога, и кратко ее изложить. Постарайся описать идеальное место для меня"),
             # ("human", "Сначала собери всю нужную информацию из истории нашего диалога о том, какой отдых мне нужен. Постарайся описать идеальное место, в которое мне бы было интересно отправиться. Опиши это место. Помни, что ты предлагаешь только поездки и прогулки по России."),
-            ("human", "Кстати, исходя из того, что я только что рассказывал о том, какой отдых в России мне нужен, как ты видишь идеальное место в России, в которое мне бы было интересно отправиться? Опиши это место. Что ты думаешь об этом месте? Что в нем есть интересного и удивительного?"),
+            ("human", "Кстати, исходя из истории нашего диалога о том, какой отдых в России мне нужен, как ты видишь идеальное место в России, в которое мне бы было интересно отправиться? Опиши это место. Что ты думаешь об этом месте? Что в нем есть интересного и удивительного?"),
         ])
         # prompt = prompt.partial(schema=formatted_schema)
 
@@ -85,7 +85,7 @@ class Consultant:
         recommendation = query
 
         products = self.database.search_best_offers(query)
-        question, options = self.ask_question(products, query)
+        question, options = self.ask_question(history, products, query)
 
         # print(question)
         # print(options)
@@ -136,9 +136,10 @@ class Consultant:
             # prompt.append(("ai", response))
 
             question, options, recommendation, products = self.collect_data(prompt)
-            # prompt.append(("ai", question))
+
+            prompt.append(("ai", question))
             print(recommendation)
-            print(json.dumps([p.full_text for p in products], indent=2, ensure_ascii=False))
+            print(json.dumps([f"{p.title}. {', '.join(p.regions)} | https://russpass.ru/event/{p.id}" for p in products], indent=2, ensure_ascii=False))
             print(question)
             print(options)
 
@@ -150,7 +151,7 @@ class Consultant:
 
         print(prompt.format())
 
-    def ask_question(self, product_offers: List[Product], query) -> Tuple[str, List[str]]:
+    def ask_question(self, history, product_offers: List[Product], query) -> Tuple[str, List[str]]:
         sep = "\n\n"
 
         prompt = ChatPromptTemplate.from_messages([
@@ -167,7 +168,7 @@ class Consultant:
         # print(response)
 
         prompt.append(("ai", response))
-        prompt.append(("human", "Спроси у меня что-нибудь, чтобы я мог выбрать из этих мест то, которое мне больше подойдет. Постарайся не копировать и не использовать названия из описаний, придумай какой-то интересный вопрос, отличающий эти места друг от друга"))
+        prompt.append(("human", "Спроси у меня что-нибудь, чтобы я мог выбрать из этих мест то, которое мне больше подойдет. Постарайся не копировать и не использовать названия из описаний, придумай какой-то интересный вопрос, отличающий эти места друг от друга."))
         response = chain.invoke({})
 
         question = response
