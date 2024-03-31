@@ -84,7 +84,7 @@ class Consultant:
         recommendation = query
 
         products = self.database.search_best_offers(query)
-        question, options = self.ask_question(products)
+        question, options = self.ask_question(products, query)
 
         # print(question)
         # print(options)
@@ -149,16 +149,16 @@ class Consultant:
 
         print(prompt.format())
 
-    def ask_question(self, product_offers: List[Product]) -> Tuple[str, List[str]]:
-        sep = "\n----------------------------------\n"
+    def ask_question(self, product_offers: List[Product], query) -> Tuple[str, List[str]]:
+        sep = "\n\n"
 
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "Ты - туристический консультант, который предлагает клиентам идеи для прогулок и маршрутов, где можно посмотреть разные достопримечательности."),
-            ("ai", "Я подобрал для вас несколько интересных вариантов, куда можно пойти: {sep}{descriptions}{sep}. Все это разные места."),
+            # ("system", "Ты - туристический консультант, который предлагает клиентам идеи для прогулок и маршрутов, где можно посмотреть разные достопримечательности."),
+            ("ai", "Вы искали место для путешествия по такому запросу: {sep}{query}{sep}\nЯ подобрал для вас несколько разных интересных вариантов, куда можно пойти: \n{sep}{descriptions}{sep}"),
             ("human", "Спасибо! А расскажи, чем эти варианты отличаются?"),
         ])
 
-        prompt = prompt.partial(descriptions=f"{sep}".join([p.full_text for p in product_offers]), sep=sep)
+        prompt = prompt.partial(descriptions=f"{sep}".join([p.full_text for p in product_offers]), sep=sep, query=query)
 
         chain = prompt | self.llm | StrOutputParser()
 
@@ -166,13 +166,13 @@ class Consultant:
         # print(response)
 
         prompt.append(("ai", response))
-        prompt.append(("human", "Спроси у меня что-нибудь, чтобы мне было проще выбрать что-то, может быть похожее, что мне нравится... Постарайся не копировать и не использовать названия из описаний"))
+        prompt.append(("human", "Спроси у меня что-нибудь, чтобы я мог выбрать из этих мест то, которое мне больше подойдет. Постарайся не копировать и не использовать названия из описаний, придумай какой-то интересный вопрос, отличающий эти места друг от друга"))
         response = chain.invoke({})
 
         question = response
 
         prompt.append(("ai", response))
-        prompt.append(("human", "Предложи мне варианты ответа. Варианты напиши в виде json списка"))
+        prompt.append(("human", "Придумай какие-нибудь варианты ответа на этот вопрос. Постарайся не использовать названия из описаний мест. Варианты напиши в виде json списка"))
         response = chain.invoke({})
         options = json.loads(response)
 
