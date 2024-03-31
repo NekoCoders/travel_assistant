@@ -52,7 +52,7 @@ class ProductDatabase:
         tops = [tops[i] for i in np.argsort([scores[t[0]] for t in tops])[::-1]]
         return tops
 
-    def search_offers(self, query: str, n_groups: int) -> List[List[Product]]:
+    def search_offers(self, query: str, n_groups: int = 4) -> List[List[Product]]:
         query_emb = self.encoder.encode(query)
         scores = self._cosine_sim(query_emb, self.product_embs)
         clusters = self._get_clusters(scores, n_groups)
@@ -66,6 +66,6 @@ class ProductDatabase:
         ]
         return top_descs
 
-    def search_best_offers(self, query: str, n_groups: int) -> List[Product]:
+    def search_best_offers(self, query: str, n_groups: int = 4) -> List[Product]:
         offers = self.search_offers(query, n_groups)
         return [p[0] for p in offers]
