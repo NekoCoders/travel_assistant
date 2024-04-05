@@ -25,52 +25,6 @@ def search(query: str) -> str:
 tool_list = [search]
 
 
-# system = '''Постарайся ответить на вопрос человека. You have access to the following tools:
-#
-# {tools}
-#
-# Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).
-#
-# Valid "action" values: "Final Answer" or {tool_names}
-#
-# Provide only ONE action per $JSON_BLOB, as shown:
-#
-# ```
-# {{
-#   "action": $TOOL_NAME,
-#   "action_input": $INPUT
-# }}
-# ```
-#
-# Follow this format:
-#
-# Question: input question to answer
-# Thought: consider previous and subsequent steps
-# Action:
-# ```
-# $JSON_BLOB
-# ```
-# Observation: action result
-# ... (repeat Thought/Action/Observation N times)
-# Thought: I know what to respond
-# Action:
-# ```
-# {{
-#   "action": "Final Answer",
-#   "action_input": "Final response to human"
-# }}
-#
-# Начинаем
-# '''
-#
-# '''
-# Begin! Reminder to ALWAYS respond with a valid json blob of a single action.
-# Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```then Observation.
-# '''
-#
-# human = '''Question:{input}
-# {agent_scratchpad}'''
-
 system = '''
 Ты - виртуальный ассистент, который может отвечать на вопрос пользователя.
 Пользователь задает тебе вопрос, а ты должен спланировать свои действия, чтобы дать ответ.
@@ -78,49 +32,45 @@ system = '''
 
 {tool_names}
 
+Не спеши сразу давать окончательный ответ, сначала постарайся использовать инструменты, которые тебе доступны, чтобы получить актуальную информацию.
+Не выдумывай какие-то неизвестные тебе данные сам, вместо этого старайся использовать инструменты, потому что они дают актуальную и более точную информацию.
 Сначала подумай, какой инструмент ты будешь использовать.
-Напиши свои мысли в таком формате:
+Подумай также, какие данные ты подашь на вход этого инструмента.
+Опиши это словами и запиши свои мысли в таком формате:
 Thoughts: <твои рассуждения>
 
-Затем прими решение, какой инструмент ты будешь запускать, и напиши свое решение в таком формате:
-Action: <инструмент, который будем запускать>
-
-Затем сформируй входные данные для инструмента, который ты выбрал.
-Напиши входные данные в формате:
-Input: <входные данные>
-
-Сохрани и проанализируй свои мысли.
 Теперь, чтобы система могла запустить выбранный тобой инструмент, сформулируй аргументы в виде JSON объекта.
-$JSON_BLOB:
 ```json
 {{
-    "action": "<action name>",
+    "action": "<tool name>",
     "action_input": {{
         ...
     }}
 }}
 ```
 
-Вот и вся инструкция! Теперь ознакомься со списком инструментов.
+Также в истории диалога сохраняются записи о твоих предыдущих действиях и полученных результатах.
+Если в истории достаточно информации, чтобы дать окончательный ответ, то подготовь его.
+Если ты хочешь дать окончательный ответ, используй специальный инструмент "Final Answer". 
+Пример, как дать окончательный ответ:
+```json
+{{
+    "action": "Final Answer",
+    "action_input": "<answer as a string>"
+}}
+```
 
+Вот и вся инструкция! Теперь ознакомься со списком инструментов.
 
 Список инструментов:
 {tools}
 
-
-
-
-Напоминаю формат твоего ответа. Всегда соблюдай его:
-
-assistant:
+Напоминаю формат твоего ответа. Всегда соблюдай только этот формат:
 ########################################
 Thoughts: <твои рассуждения>
-Action: <инструмент, который будем запускать>
-Input: <входные данные>
-$JSON_BLOB:
 ```json
 {{
-    "action": "<action name>",
+    "action": "<action name> | Final Answer",
     "action_input": {{
         ...
     }}
@@ -164,8 +114,7 @@ def create_agent(prompt, llm, tools, tools_renderer: ToolsRenderer = render_text
         tools=tools_renderer(list(tools)),
         tool_names=", ".join([t.name for t in tools]),
     )
-    # llm_with_stop = llm.bind(stop=["Observation: "])
-    llm_with_stop = llm
+    llm_with_stop = llm.bind(stop=["Observation"])
 
     agent = (
         RunnablePassthrough.assign(
@@ -191,16 +140,14 @@ class Assistant:
             [
                 ("system", system),
                 MessagesPlaceholder("chat_history", optional=True),
-                ("ai", bot),
                 ("human", human),
+                ("ai", bot),
             ]
         )
 
-        tools = [search]
-
         llm = self.llm.bind(function_call="none")
 
-        agent = create_agent(prompt, llm, tools)
+        agent = create_agent(prompt, llm, tool_list)
 
         agent_executor = AgentExecutor(agent=agent, tools=tool_list, verbose=True)
 
