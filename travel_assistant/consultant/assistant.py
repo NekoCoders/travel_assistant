@@ -17,13 +17,6 @@ from travel_assistant.common.custom_types import Product
 from travel_assistant.common.gigachat_api import AUTH_DATA
 from travel_assistant.database.database import ProductDatabase
 
-@tool
-def search(query: str) -> str:
-    """Поиск информации о температуре в различных местах"""
-    return "32 degrees"
-
-tool_list = [search]
-
 
 system = '''
 Ты - виртуальный ассистент, который может отвечать на вопрос пользователя.
@@ -131,9 +124,9 @@ def create_agent(prompt, llm, tools, tools_renderer: ToolsRenderer = render_text
 class Assistant:
     def __init__(self):
         self.llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False)
-        # self.database = ProductDatabase()
-        # self.database.load()
-        # self.database.save()
+        self.database = ProductDatabase()
+        self.database.load()
+        self.database.save()
 
     def chat(self):
         prompt = ChatPromptTemplate.from_messages(
@@ -147,11 +140,26 @@ class Assistant:
 
         llm = self.llm.bind(function_call="none")
 
+        @tool
+        def search_places(query: str) -> str:
+            """
+            Данный инструмент позволяет найти в базе RUSSPASS место для прогулки или путешествия по его описанию.
+
+            :param query: Описание места, которое вы бы хотели посетить
+            :return: Предложения, которые есть в базе
+            """
+            products = self.database.search_best_offers(query)
+            output_info = "\n\n".join([f"{p.title}: {p.description}" for p in products])
+
+            return output_info
+
+        tool_list = [search_places]
+
         agent = create_agent(prompt, llm, tool_list)
 
         agent_executor = AgentExecutor(agent=agent, tools=tool_list, verbose=True)
 
-        result = agent_executor.invoke({"input": "Привет! Какая температура в Москве?"})
+        result = agent_executor.invoke({"input": "Привет! Где можно погулять в Москве?"})
 
         # # Using with chat history
         # from langchain_core.messages import AIMessage, HumanMessage
