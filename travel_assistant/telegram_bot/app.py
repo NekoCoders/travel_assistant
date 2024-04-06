@@ -6,7 +6,7 @@ import telebot
 from telebot import TeleBot
 from telebot import types
 
-from travel_assistant.common.custom_types import Product
+from travel_assistant.common.custom_types import Product, ClientContext
 from travel_assistant.consultant.assistant import Assistant
 
 TOKEN = "7054321594:AAE5lT7J_wIL76aTwql1qzpSocnOriRPB50"
@@ -25,7 +25,7 @@ def format_products(products: List[Product]) -> str:
 
 
 if __name__ == "__main__":
-    context_by_chat_id: dict[str, list] = defaultdict(list)
+    context_by_chat_id: dict[str, ClientContext] = defaultdict(ClientContext)
     bot = telebot.TeleBot(TOKEN, threaded=False)
     assistant = Assistant(verbose=True)
 
@@ -33,15 +33,13 @@ if __name__ == "__main__":
     def answer_message(message):
         try:
             if message.text == "/start":
-                context_by_chat_id[message.chat.id] = []
+                context_by_chat_id[message.chat.id] = ClientContext()
                 text_to_send = "Здравствуйте, я Борис! Давайте я помогу вам подобрать досуг. Что Вас интересует?"
                 bot.send_message(message.chat.id, text_to_send)
             else:
                 old_context = context_by_chat_id[message.chat.id]
-                new_context_by_chat_id, bot_response, bot_question, options, products = assistant.chat_single(old_context, message.text)
-                text_to_send = bot_response
-                bot.send_message(message.chat.id, bot_response)
-                time.sleep(1)
+                new_context_by_chat_id, bot_question, options, products = assistant.chat_single(old_context, message.text)
+                text_to_send = bot_question
                 if products:
                     bot.send_message(message.chat.id, format_products(products))
                     time.sleep(1)

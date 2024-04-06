@@ -1,7 +1,7 @@
 import base64
 import dataclasses
 from dataclasses import dataclass
-from typing import Literal, List, Optional
+from typing import Literal, List, Optional, Tuple
 
 import numpy as np
 
@@ -43,3 +43,13 @@ class Product:
 class CompositeQuery:
     action_kind: Literal["active", "beach", "adventure"]
     city: str
+
+
+class ClientContext:
+    interests: str = ""
+    messages: List[Tuple[str, str]]
+
+    def __init__(self, messages: Optional[List[Tuple[str, str]]] = None, interests: str = ""):
+        if messages is None:
+            self.messages = []
+        self.interests = interests
