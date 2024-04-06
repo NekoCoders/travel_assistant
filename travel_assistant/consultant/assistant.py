@@ -35,7 +35,7 @@ class Assistant:
         """
         products = self.database.search_best_offers(query)
         output_info = f"\nПредложения, которые я нашел в базе RUSSPASS по запросу '{query}':\n"
-        output_info += "\n".join([f" - {p.title}. {p.regions}: {p.description}" for p in products])
+        output_info += "\n".join([f" - {p.title}. {', '.join(p.regions)}: {p.description}" for p in products])
         output_info += "\n"
         tool_context["products"] = products
 
@@ -71,7 +71,7 @@ class Assistant:
             bot_response = bot_response.values().__iter__().__next__()
         found_products = tool_context["products"] if "products" in tool_context else None
 
-        question, options = self.ask_questions(context, bot_response)
+        question, options = self.ask_questions(context, user_message, bot_response)
 
         store_response = f"{bot_response}\nAssistant Question:\n{question}\n"
 
@@ -102,11 +102,12 @@ class Assistant:
             print("Bot :", output_message)
             print(options)
 
-    def ask_questions(self, context, bot_response):
+    def ask_questions(self, context, human_message, bot_response):
         prompt_question = ChatPromptTemplate.from_messages(
             [
                 ("system", system_ask),
                 MessagesPlaceholder("chat_history", optional=True),
+                ("human", human_message),
                 ("ai", bot_response),
                 ("human", human_ask),
             ]
@@ -118,6 +119,7 @@ class Assistant:
             [
                 ("system", system_options),
                 MessagesPlaceholder("chat_history", optional=True),
+                ("human", human_message),
                 ("ai", f"{bot_response}\n\n{question}"),
                 ("human", human_options)
             ]
