@@ -18,7 +18,7 @@ def start_listening_server(bot: TeleBot):
 
 
 def format_products(products: List[Product]) -> str:
-    message = ""
+    message = "Вот что я нашел в каталоге RUSSPASS:\n\n"
     for p in products:
         message += f"{p.title}\nhttps://russpass.ru/event/{p.id}\n\n"
     return message

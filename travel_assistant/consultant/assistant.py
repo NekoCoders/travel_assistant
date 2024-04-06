@@ -19,7 +19,7 @@ from travel_assistant.database.database import ProductDatabase
 class Assistant:
     def __init__(self, verbose=False):
         self.verbose = verbose
-        self.llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False, max_tokens=256)
+        self.llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False, max_tokens=512)
         self.database = ProductDatabase()
         self.database.load()
         self.database.save()
