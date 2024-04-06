@@ -47,7 +47,7 @@ class ProductDatabase:
         scores = scores[idxs]
         product_embs = self.product_embs[idxs]
         weights = np.exp((scores - scores.max()) / temperature)
-        kmeans = KMeans(n_clusters=n_clusters).fit(product_embs, sample_weight=weights)
+        kmeans = KMeans(n_clusters=n_clusters, n_init="auto").fit(product_embs, sample_weight=weights)
         tops = [[] for _ in range(n_clusters)]
         labels = kmeans.labels_[::-1]
         for i, label in zip(idxs, labels):

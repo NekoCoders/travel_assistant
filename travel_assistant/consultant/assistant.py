@@ -1,16 +1,20 @@
 # from langchain.schema import HumanMessage, SystemMessage
 import json
-from typing import List, Tuple
+import re
+from typing import List, Tuple, Union, Callable, Any
 
 from langchain.agents.format_scratchpad import format_log_to_str
 from langchain.agents.output_parsers import XMLAgentOutputParser, JSONAgentOutputParser
 from langchain.tools.render import ToolsRenderer, render_text_description_and_args
+from langchain_core.agents import AgentAction, AgentFinish
+from langchain_core.exceptions import OutputParserException
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models.gigachat import GigaChat
+from langchain_core.output_parsers.json import parse_partial_json, _custom_parser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain import hub
-from langchain.agents import AgentExecutor, tool, create_structured_chat_agent
+from langchain.agents import AgentExecutor, tool, create_structured_chat_agent, AgentOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
 from travel_assistant.common.custom_types import Product
@@ -19,9 +23,8 @@ from travel_assistant.database.database import ProductDatabase
 
 
 system = '''Ты - туристический консультант, твоя задача - подобрать для клиента места, экскурсии и маршруты, которые бы его заинтересовали.
-Ты взаимодействуешь с пользователем не напрямую, а через систему, которая выделяет из твоего ответа специальный Markdown блок с JSON объектом. Ты должен всегда включать в свой ответ такой блок.
+Ты взаимодействуешь с пользователем не напрямую, а через систему.
 Пользователь может задавать тебе вопросы, а ты должен спланировать свои действия, чтобы дать ответ с помощью системы.
-Также ты должен пытаться задавать наводящие вопросы, чтобы понять, чего клиент хочет.
 
 Система позволяет тебе использовать следующие инструменты:
 {tool_names}
@@ -32,7 +35,6 @@ system = '''Ты - туристический консультант, твоя �
 Thoughts: <твои рассуждения>
 
 Теперь, чтобы система могла запустить выбранный тобой инструмент, сформулируй аргументы в виде JSON объекта.
-```json
 {{
     "action": "<tool name>",
     "action_input": {{
@@ -41,22 +43,17 @@ Thoughts: <твои рассуждения>
         ...
     }}
 }}
-```
 
 Если ты хочешь передать пользователю сообщение или что-то у него спросить, используй специальный инструмент "Final Answer".
 Пример, как это сделать:
-```json
 {{
     "action": "Final Answer",
     "action_input": {{
         "result": "<сообщение пользователю в виде текста>"
     }}
 }}
-```
 
-Вот и вся инструкция! Теперь ознакомься со списком инструментов.
-
-Список инструментов:
+Вот и вся инструкция! Теперь ознакомься со списком инструментов:
 {tools}
 
 Можем начинать!
@@ -65,11 +62,9 @@ Thoughts: <твои рассуждения>
 human = '''Привет! Я система, с которой ты взаимодействуешь. Я умею парсить твой ответ и запускать инструменты по твоей команде.
 Пользователь задал нам вопрос: {input}
 {agent_scratchpad}
-Помни, что ты общаешься не с пользователем, а с системой, которая принимает только Markdown блок с JSON объектом.
-Если ты хочешь передать сообщение пользователю, используй специальный инструмент "Final Answer".
+
 Формат твоего ответа:
 Thoughts: <твои рассуждения>
-```json
 {{
     "action": "<action name>" | "Final Answer",
     "action_input": {{
@@ -78,9 +73,10 @@ Thoughts: <твои рассуждения>
         ...
     }}
 }}
-```
 
-Опиши свои дальнейшие действия и сформируй Markdown блок с JSON объектом для запуска инструмента.
+Опиши свои дальнейшие действия и сформируй JSON объект для запуска инструмента.
+Если ты хочешь передать сообщение пользователю, используй специальный инструмент "Final Answer".
+Не забудь сформировать JSON!
 '''
 
 
@@ -92,6 +88,52 @@ def convert_intermediate_steps(intermediate_steps):
         log += f"{observation}"
     return log
 
+
+def parse_json_in_text(
+    json_string: str, *, parser: Callable[[str], Any] = parse_partial_json
+) -> dict:
+    # Try to find JSON string within triple backticks
+    # match = re.search(r"```(json)?(.*)", json_string, re.DOTALL)
+    match = re.search(r"{(.*)}", json_string, re.DOTALL)
+
+    # If no match found, assume the entire string is a JSON string
+    if match is None:
+        json_str = json_string
+    else:
+        # If match found, use the content within the backticks
+        json_str = match.group(0)
+
+    # Strip whitespace and newlines from the start and end
+    json_str = json_str.strip().strip("`")
+
+    # handle newlines and other special characters inside the returned value
+    json_str = _custom_parser(json_str)
+
+    # Parse the JSON string into a Python dictionary
+    parsed = parser(json_str)
+
+    return parsed
+
+class CustomJSONAgentOutputParser(AgentOutputParser):
+    def parse(self, text: str) -> Union[AgentAction, AgentFinish]:
+        try:
+            response = parse_json_in_text(text)
+            if isinstance(response, list):
+                # gpt turbo frequently ignores the directive to emit a single action
+                # logger.warning("Got multiple action responses: %s", response)
+                response = response[0]
+            if response["action"] == "Final Answer":
+                return AgentFinish({"output": response["action_input"]}, text)
+            else:
+                return AgentAction(
+                    response["action"], response.get("action_input", {}), text
+                )
+        except Exception as e:
+            raise OutputParserException(f"Could not parse LLM output: {text}") from e
+
+    @property
+    def _type(self) -> str:
+        return "json-agent"
 
 def create_agent(prompt, llm, tools, tools_renderer: ToolsRenderer = render_text_description_and_args):
     missing_vars = {"tools", "tool_names", "agent_scratchpad"}.difference(
@@ -112,7 +154,7 @@ def create_agent(prompt, llm, tools, tools_renderer: ToolsRenderer = render_text
         )
         | prompt
         | llm_with_stop
-        | JSONAgentOutputParser()
+        | CustomJSONAgentOutputParser()
     )
 
     return agent
@@ -125,13 +167,10 @@ class Assistant:
         self.database.load()
         self.database.save()
 
-    def chat_single(self):
-        start_message = "Добрый день! Буду рад подобрать для вас интересные места!"
-
+    def chat_single(self, context: List[Tuple[str, str]], user_message: str):
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
-                ("ai", start_message),
                 MessagesPlaceholder("chat_history", optional=True),
                 ("human", human),
             ]
@@ -161,37 +200,42 @@ class Assistant:
 
         agent_executor = AgentExecutor(agent=agent, tools=tool_list, verbose=True)
 
-        result = agent_executor.invoke({"input": "Привет! Где можно погулять в Москве?"})
+        agent_output = agent_executor.invoke(
+            {
+                "input": user_message,
+                "chat_history": context,
+            }
+        )
+        response = agent_output["output"]["result"]
 
-        # # Using with chat history
-        # from langchain_core.messages import AIMessage, HumanMessage
-        # result = agent_executor.invoke(
-        #     {
-        #         "input": "what's my name?",
-        #         "chat_history": [
-        #             HumanMessage(content="hi! my name is bob"),
-        #             AIMessage(content="Hello Bob! How can I assist you today?"),
-        #         ],
-        #     }
-        # )
+        context += [
+            ("human", user_message),
+            ("ai", response)
+        ]
 
-        print(result)
+        return response, context
 
-    # def chat(self):
-    #     context = []
-    #     print("Добрый день! Я помогу вам подобрать подходящий тур! Что вас интересует?")
-    #     while True:
-    #         message = input()
-    #         output_message, context = self.chat_single(context, message)
-    #         print(output_message)
+    def chat(self):
+        messages = [
+            "Привет! Где можно погулять в Москве?",
+            "Спасибо, а есть какие-нибудь выставки или научные события?",
+        ]
 
-    
+        start_message = "Добрый день! Я помогу вам найти интересные места!"
+        context = [("ai", start_message)]
+        print(start_message)
+        # while True:
+        #     message = input()
+        for message in messages:
+            print(message)
+            output_message, context = self.chat_single(context, message)
+            print(output_message)
 
 
 def main():
     bot = Assistant()
 
-    bot.chat_single()
+    bot.chat()
 
 
 if __name__ == '__main__':
