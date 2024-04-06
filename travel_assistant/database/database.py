@@ -43,17 +43,18 @@ class ProductDatabase:
 
     def _get_clusters(self, scores, n_clusters: int, temperature=0.5, topk=1000):
         idxs = np.argsort(scores)[::-1][:topk]
-        scores_base = scores
-        scores = scores[idxs]
-        product_embs = self.product_embs[idxs]
-        weights = np.exp((scores - scores.max()) / temperature)
-        kmeans = KMeans(n_clusters=n_clusters, n_init="auto").fit(product_embs, sample_weight=weights)
-        tops = [[] for _ in range(n_clusters)]
-        labels = kmeans.labels_[::-1]
-        for i, label in zip(idxs, labels):
-            tops[label].append(i)
-        tops = [tops[i] for i in np.argsort([scores_base[t[0]] for t in tops])[::-1]]
-        # print([scores_base[tp[0]] for tp in tops])
+        # scores_base = scores
+        # scores = scores[idxs]
+        # product_embs = self.product_embs[idxs]
+        # weights = np.exp((scores - scores.max()) / temperature)
+        # kmeans = KMeans(n_clusters=n_clusters, n_init="auto").fit(product_embs, sample_weight=weights)
+        # tops = [[] for _ in range(n_clusters)]
+        # labels = kmeans.labels_[::-1]
+        # for i, label in zip(idxs, labels):
+        #     tops[label].append(i)
+        # tops = [tops[i] for i in np.argsort([scores_base[t[0]] for t in tops])[::-1]]
+        # # print([scores_base[tp[0]] for tp in tops])
+        tops = [[i] for i in idxs[:n_clusters]]
         return tops
 
     def search_offers(self, query: str, n_groups: int = 4) -> List[List[Product]]:

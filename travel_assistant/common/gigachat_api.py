@@ -4,7 +4,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import requests
 
 
-AUTH_DATA = "NzQxODY4MzItMmUyZC00Yzg5LThmZDctMDQwZTQyMjExMWFhOjc1YmM5MTVmLWRjYzAtNGVmNC04MjlhLTI3Yzg1YzkwYmQxOA=="
+AUTH_DATA = "MGU4MzNiNGYtNGZkMi00OTdkLWE4YTEtNGM5NDU1MTNhNGQxOjhiMDUzNjY1LWY0NTctNDZlYS1hYWRiLTRjNTNhOWJiMTExZA=="
+# AUTH_DATA = "YzkzNTVmNDYtODIwNi00MDBjLTkzN2ItNjZhOTA4MDQwZjMwOmNmODJlMjEyLTAwOWMtNDA5ZS04Nzc0LWFmYWEyNTc3NDBmYw=="
 
 
 def create_access_token(auth_data=AUTH_DATA):

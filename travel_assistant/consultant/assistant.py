@@ -25,10 +25,6 @@ from travel_assistant.database.database import ProductDatabase
 
 
 system = '''Ты - туристический консультант, твоя задача - подобрать для клиента места, экскурсии и маршруты, которые бы его заинтересовали.
-Ты взаимодействуешь с пользователем не напрямую, а через систему.
-Пользователь скорее всего не знает, чего он хочет, и тебе нужно его заинтересовать.
-Ты можешь задавать ему вопросы, чтобы выяснить, что ему бы понравилось.
-Также если пользователь что-то у тебя спросит, попробуй найти информацию об этом.
 
 Система позволяет тебе использовать следующие инструменты:
 {tool_names}
@@ -48,26 +44,12 @@ Thoughts: <твои рассуждения>
     }}
 }}
 
-Если ты хочешь дать пользователю ответ, используй специальный инструмент "Final Answer".
-Пример, как это сделать:
+Когда ты соберешь всю необходимую информацию и будешь готов дать пользователю овет на его вопрос, используй специальный инструмент "Final Answer".
+Используй такой формат:
 {{
     "action": "Final Answer",
     "action_input": {{
-        "result": "<сообщение пользователю в виде текста>"
-    }}
-}}
-
-Если ты хочешь задать пользователю вопрос, то используй также команду "Final Answer".
-Пример, как это сделать:
-{{
-    "action": "Final Answer",
-    "action_input": {{
-        "question": "<вопрос пользователю>",
-        "options": [
-            <вариант1>,
-            <вариант2>,
-            ...
-        ]
+        "answer": "<ответ пользователю в виде текста>"
     }}
 }}
 
@@ -93,9 +75,22 @@ Thoughts: <твои рассуждения>
 }}
 
 Опиши свои дальнейшие действия и сформируй JSON объект для запуска инструмента.
-Если ты хочешь передать сообщение пользователю, используй специальный инструмент "Final Answer".
-Если ты хочешь задать пользователю вопрос, то используй также команду "Final Answer".
 Свой ответ дай в виде JSON'''
+
+
+system_ask = '''Ты - туристический консультант, твоя задача - подобрать для клиента места, экскурсии и маршруты, которые бы его заинтересовали.'''
+
+human_ask = '''На основе нашего диалога с пользователем, задай мне наводящий вопрос, чтобы сузить круг поиска того, что меня бы заинтересовало.
+Ответ дай в JSON формате:
+{{
+    "question": "<вопрос пользователю>",
+    "options": [
+        <вариант ответа 1>,
+        <вариант ответа 2>,
+        ...
+    ]
+}}
+'''
 
 
 def convert_intermediate_steps(intermediate_steps):
@@ -118,18 +113,19 @@ def parse_json_in_text(
     # If no match found, assume the entire string is a JSON string
     if match is None:
         json_str = json_string
+        parsed = {"action": "Final Answer", "action_input": {"answer": json_str}}
     else:
         # If match found, use the content within the backticks
         json_str = match.group(0)
 
-    # Strip whitespace and newlines from the start and end
-    json_str = json_str.strip().strip("`")
+        # Strip whitespace and newlines from the start and end
+        json_str = json_str.strip().strip("`")
 
-    # handle newlines and other special characters inside the returned value
-    json_str = _custom_parser(json_str)
+        # handle newlines and other special characters inside the returned value
+        json_str = _custom_parser(json_str)
 
-    # Parse the JSON string into a Python dictionary
-    parsed = parser(json_str)
+        # Parse the JSON string into a Python dictionary
+        parsed = parser(json_str)
 
     return parsed
 
@@ -213,31 +209,7 @@ class Assistant:
 
             return output_info
 
-        @tool
-        def make_questions(interests: str | List[str]) -> str:
-            """
-            Данный инструмент позволяет сформировать наводящие вопросы для пользователя, которые помогут лучше понять, что его бы заинтересовало и сузить круг поиска.
-
-            :param interests: Интересы пользователя, которые были выяснены в ходе диалога
-            :return: Вопросы, которые можно задать пользователю
-            """
-            questions = [
-                {
-                    "question": "Что вы больше любите: гулять по паркам или заниматься спортом?",
-                    "options": [
-                        "Гулять по паркам",
-                        "Заниматься спортом",
-                    ]
-                }
-            ]
-
-            output_info = f"\nВопросы, которые можно задать по теме '{interests}':\n"
-            output_info += "\n".join([f" - {quest['question']}: {quest['options']}" for quest in questions])
-            output_info += "\n"
-
-            return output_info
-
-        tool_list = [search_places, make_questions]
+        tool_list = [search_places]
 
         agent = create_agent(prompt, llm, tool_list)
 
@@ -249,27 +221,27 @@ class Assistant:
                 "chat_history": context,
             }
         )
-        response_dict = agent_output["output"]
-        if "question" in response_dict:
-            response = f"{response_dict['question']}"
-            if "options" in response_dict:
-                response += f": {response_dict['options']}"
-        else:
-            response = response_dict["result"]
+        bot_response = agent_output["output"]['answer']
+
+        question, options = self.ask_questions(context, bot_response)
+
+        full_response = f"{bot_response}\n{question}"
+        print(options)
 
         context += [
             ("human", user_message),
-            ("ai", response)
+            ("ai", full_response)
         ]
 
-        return response, context
+        return full_response, context
 
     def chat(self):
         messages = [
             "Привет! Где можно погулять в Москве?",
             "Даже не знаю, я пока не понял, что мне нужно",
             "Гулять по паркам",
-            "Спасибо, а в парке горького что есть классного?"
+            "Спасибо, а в парке горького что есть классного?",
+            "А расскажи про арку главного входа"
         ]
 
         start_message = "Добрый день! Я помогу вам найти интересные места!"
@@ -281,6 +253,25 @@ class Assistant:
             print("User:", message)
             output_message, context = self.chat_single(context, message)
             print("Bot :", output_message)
+
+    def ask_questions(self, context, bot_response):
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_ask),
+                MessagesPlaceholder("chat_history", optional=True),
+                ("ai", bot_response),
+                ("human", human_ask),
+            ]
+        )
+
+        chain = prompt | self.llm | StrOutputParser()
+
+        response = chain.invoke({"chat_history": context})
+        response = json.loads(response)
+        question = response["question"]
+        options = response["options"]
+
+        return question, options
 
 
 def main():
