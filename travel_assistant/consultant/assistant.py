@@ -77,9 +77,8 @@ class Assistant:
 
         return options
 
-    def chat_single(self, context: ClientContext, user_message: str) -> Tuple[ClientContext, str, List[str], List[Product]]:
+    def chat_single(self, context: ClientContext, user_message: str) -> Tuple[ClientContext, str, str, List[str], List[Product]]:
         interests = self.get_interests(context, user_message)
-        print("Interest:", interests)
         context.interests = interests
 
         products = self.search_products(interests)
@@ -91,7 +90,7 @@ class Assistant:
             ("ai", question),
         ]
 
-        return context, question, options, products
+        return context, interests, question, options, products
 
     def chat(self):
         messages = [

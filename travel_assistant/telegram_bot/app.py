@@ -20,7 +20,7 @@ def start_listening_server(bot: TeleBot):
 def format_products(products: List[Product]) -> str:
     message = ""
     for p in products:
-        message += f"{p.title}: https://russpass.ru/event/{p.id}\n"
+        message += f"{p.title}\nhttps://russpass.ru/event/{p.id}\n\n"
     return message
 
 
@@ -36,10 +36,14 @@ if __name__ == "__main__":
                 context_by_chat_id[message.chat.id] = ClientContext()
                 text_to_send = "Здравствуйте, я Борис! Давайте я помогу вам подобрать досуг. Что Вас интересует?"
                 bot.send_message(message.chat.id, text_to_send)
+                print(f"Started chat with {message.chat.username}")
             else:
                 old_context = context_by_chat_id[message.chat.id]
-                new_context_by_chat_id, bot_question, options, products = assistant.chat_single(old_context, message.text)
-                text_to_send = bot_question
+                new_context_by_chat_id, bot_message, bot_question, options, products = assistant.chat_single(old_context, message.text)
+
+                bot.send_message(message.chat.id, bot_message)
+                time.sleep(1)
+
                 if products:
                     bot.send_message(message.chat.id, format_products(products))
                     time.sleep(1)
@@ -52,7 +56,7 @@ if __name__ == "__main__":
 
                 context_by_chat_id[message.chat.id] = new_context_by_chat_id
 
-            print(f"Got message from {message.chat.username}, message: '{message.text}', answer: '{text_to_send}'")
+                print(f"Got message from {message.chat.username}, message: '{message.text}', answer: '{bot_message}'")
         except Exception as e:
             print(e)
 
