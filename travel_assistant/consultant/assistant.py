@@ -11,14 +11,15 @@ from langchain.agents import AgentExecutor, tool
 from travel_assistant.common.custom_types import Product
 from travel_assistant.common.gigachat_api import AUTH_DATA
 from travel_assistant.consultant.agent_utils import create_agent
-from travel_assistant.consultant.assistant_prompts import system, human, system_ask, human_ask
+from travel_assistant.consultant.assistant_prompts import system, human, system_ask, human_ask, system_options, \
+    human_options
 from travel_assistant.database.database import ProductDatabase
 
 
 class Assistant:
     def __init__(self, verbose=False):
         self.verbose = verbose
-        self.llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False)
+        self.llm = GigaChat(model="GigaChat", credentials=AUTH_DATA, verify_ssl_certs=False, max_tokens=256)
         self.database = ProductDatabase()
         self.database.load()
         self.database.save()
@@ -28,14 +29,13 @@ class Assistant:
       def search_places(query: str) -> str:
         """
         Данный инструмент позволяет найти в базе RUSSPASS места для прогулки или путешествия по их описанию.
-        Используй этот инструмент всегда, когда готов порекомендовать пользователю места.
 
         :param query: Описание места, которое вы бы хотели посетить
         :return: Предложения, которые есть в базе
         """
         products = self.database.search_best_offers(query)
         output_info = f"\nПредложения, которые я нашел в базе RUSSPASS по запросу '{query}':\n"
-        output_info += "\n".join([f" - {p.title}: {p.description}" for p in products])
+        output_info += "\n".join([f" - {p.title}. {p.regions}: {p.description}" for p in products])
         output_info += "\n"
         tool_context["products"] = products
 
@@ -73,11 +73,11 @@ class Assistant:
 
         question, options = self.ask_questions(context, bot_response)
 
-        store_response = f"{bot_response}\n{question}\nВарианты ответа: {options}"
+        store_response = f"{bot_response}\nAssistant Question:\n{question}\n"
 
         context += [
             ("human", user_message),
-            ("ai", store_response)
+            ("ai", store_response),
         ]
 
         return context, bot_response, question, options, found_products
@@ -103,7 +103,7 @@ class Assistant:
             print(options)
 
     def ask_questions(self, context, bot_response):
-        prompt = ChatPromptTemplate.from_messages(
+        prompt_question = ChatPromptTemplate.from_messages(
             [
                 ("system", system_ask),
                 MessagesPlaceholder("chat_history", optional=True),
@@ -111,13 +111,20 @@ class Assistant:
                 ("human", human_ask),
             ]
         )
+        chain_question = prompt_question | self.llm | StrOutputParser()
+        question = chain_question.invoke({"chat_history": context})
 
-        chain = prompt | self.llm | StrOutputParser()
-
-        response = chain.invoke({"chat_history": context})
-        response = json.loads(response)
-        question = response["question"]
-        options = response["options"]
+        prompt_options = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_options),
+                MessagesPlaceholder("chat_history", optional=True),
+                ("ai", f"{bot_response}\n\n{question}"),
+                ("human", human_options)
+            ]
+        )
+        chain_options = prompt_options | self.llm | StrOutputParser()
+        options = chain_options.invoke({"chat_history": context})
+        options = json.loads(options)
 
         return question, options
 

@@ -29,7 +29,7 @@ def parse_json_in_text(
     # If no match found, assume the entire string is a JSON string
     if match is None:
         json_str = json_string
-        parsed = {"action": "Final Answer", "action_input": {"answer": json_str}}
+        parsed = {"action": "answer", "action_input": {"text": json_str}}
     else:
         # If match found, use the content within the backticks
         json_str = match.group(0)
