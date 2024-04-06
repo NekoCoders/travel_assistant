@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models.gigachat import GigaChat
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents import AgentExecutor, tool
 
+from travel_assistant.common.custom_types import Product
 from travel_assistant.common.gigachat_api import AUTH_DATA
 from travel_assistant.consultant.agent_utils import create_agent
 from travel_assistant.consultant.assistant_prompts import system, human, system_ask, human_ask
@@ -22,12 +23,7 @@ class Assistant:
         self.database.load()
         self.database.save()
 
-        self.tools = []
-        self.register_search_places_tool()
-
-        self.create_agent()
-
-    def register_search_places_tool(self):
+    def build_tools(self, tool_context: dict):
       @tool
       def search_places(query: str) -> str:
         """
@@ -41,9 +37,11 @@ class Assistant:
         output_info = f"\nПредложения, которые я нашел в базе RUSSPASS по запросу '{query}':\n"
         output_info += "\n".join([f" - {p.title}: {p.description}" for p in products])
         output_info += "\n"
+        tool_context["products"] = products
 
         return output_info
-      self.tools.append(search_places)
+      tools = [search_places]
+      return tools
 
     def create_agent(self):
         prompt = ChatPromptTemplate.from_messages([
@@ -52,11 +50,17 @@ class Assistant:
             ("human", human),
         ])
 
-        agent = create_agent(prompt, self.llm, self.tools)
-        self.agent_executor = AgentExecutor(agent=agent, tools=self.tools, verbose=self.verbose)
+        tool_context = {}
+        tools = self.build_tools(tool_context)
 
-    def chat_single(self, context: List[Tuple[str, str]], user_message: str) -> Tuple[List[Tuple[str, str]], str, List[str]]:
-        agent_output = self.agent_executor.invoke(
+        agent = create_agent(prompt, self.llm, tools)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=self.verbose)
+        return agent_executor, tool_context
+
+    def chat_single(self, context: List[Tuple[str, str]], user_message: str) -> Tuple[List[Tuple[str, str]], str, str, List[str], Optional[List[Product]]]:
+        agent_executor, tool_context = self.create_agent()
+
+        agent_output = agent_executor.invoke(
             {
                 "input": user_message,
                 "chat_history": context,
@@ -65,17 +69,18 @@ class Assistant:
         bot_response = agent_output["output"]
         if isinstance(bot_response, dict):
             bot_response = bot_response.values().__iter__().__next__()
+        found_products = tool_context["products"] if "products" in tool_context else None
 
         question, options = self.ask_questions(context, bot_response)
 
-        full_response = f"{bot_response}\n{question}"
+        store_response = f"{bot_response}\n{question}\nВарианты ответа: {options}"
 
         context += [
             ("human", user_message),
-            ("ai", full_response)
+            ("ai", store_response)
         ]
 
-        return context, full_response, options
+        return context, bot_response, question, options, found_products
 
     def chat(self):
         messages = [
