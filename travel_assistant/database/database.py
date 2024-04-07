@@ -1,4 +1,6 @@
 import json
+import os.path
+from pathlib import Path
 from typing import List, Dict
 
 import numpy as np
@@ -18,6 +20,7 @@ class ProductDatabase:
         self.encoder = SimilarityModel()
 
     def load(self, path: str = "products.json"):
+        path = Path(__file__).parent / path
         with open(path, "rt", encoding="utf-8") as f:
             products = json.load(f)
         products = [Product.deserialize(p) for p in products]
@@ -31,6 +34,7 @@ class ProductDatabase:
         self.product_embs = np.stack([p.emb for p in products], axis=0)
 
     def save(self, path: str = "products.json"):
+        path = Path(__file__).parent / path
         data = [
             self.products[self.product_ids[i]].serialize()
             for i in range(len(self.product_ids))
