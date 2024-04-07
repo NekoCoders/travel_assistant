@@ -255,6 +255,20 @@ body {
     margin-bottom:10px;
     margin-left: 85px;
   }
+
+  .avtotvetmain {
+    height: 80px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: flex-end;
+  }
+
+  .avtotvet {
+    width: 250px;
+    height: 45px;
+    border-radius: 10px;
+    
+  }
   
   .response-time {
     float: right;
