@@ -173,7 +173,7 @@
           </button>
         </div>
         <div class="footer-chat">
-          {% csrf_token %}
+          <div style="display: none;">{% csrf_token %}</div>
           <i class="icon fa fa-smile-o clickable" style="font-size:25pt;" aria-hidden="true"></i>
           <input type="text" class="write-message" id="write-message" placeholder="Написать ответ">
           <i id="send-message" class="icon send fa fa-paper-plane-o clickable" aria-hidden="true"></i>
