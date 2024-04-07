@@ -1,3 +1,4 @@
+import dataclasses
 import json
 from collections import defaultdict
 
@@ -27,8 +28,10 @@ def form_send_message(request):
         old_context = context_by_chat_id[csrf]
         new_context_by_chat_id, bot_message, bot_question, options, products = assistant.chat_single(old_context,
                                                                                                      message_text)
-
-        response_data = {'message': bot_message + "\n" + bot_question, 'options': options, 'products': products}
+        for p in products:
+            p.emb = None
+        ready_products = [dataclasses.asdict(p) for p in products]
+        response_data = {'message': bot_message + "\n" + bot_question, 'options': options, 'products': ready_products}
     else:
         response_data = {}
     return HttpResponse(json.dumps(response_data), content_type="application/json")

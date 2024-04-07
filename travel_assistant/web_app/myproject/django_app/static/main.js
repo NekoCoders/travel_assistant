@@ -6,7 +6,7 @@ $(document).ready(function () {
     console.log(csrf);
     var formData = {
       message_text: message_text,
-      csrf: "123",
+      csrf: csrf,
     };
 
     var message_to_append = `
