@@ -1,3 +1,10 @@
+render_options = function(option_texts) {
+    $(".avtotvet").each(function( index ) {
+        if (index < option_texts.length) {
+            $( this ).text(option_texts[index]);
+        }
+    });
+}
 
 send_message = function() {
     var messages_container = $(".messages-chat");
@@ -35,6 +42,7 @@ send_message = function() {
                     <p class="text">${data.message}</p>
             </div>`;
           $(".messages-chat").append(message_to_append);
+          render_options(data.options);
     });
 
     $("#write-message").val("");
