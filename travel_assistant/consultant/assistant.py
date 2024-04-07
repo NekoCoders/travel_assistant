@@ -98,12 +98,23 @@ class Assistant:
 
         return options
 
-    def chat_single(self, context: ClientContext, user_message: str) -> Tuple[ClientContext, str, str, List[str], List[Tuple[Product, str]]]:
+    def chat_single(self, context: ClientContext, user_message: str, typing_cb = None) -> Tuple[ClientContext, str, str, List[str], List[Tuple[Product, str]]]:
+        if typing_cb:
+            typing_cb()
+
         interests = self.get_interests(context, user_message)
         context.interests = interests
+        if typing_cb:
+            typing_cb()
 
         products = self.search_products(context, user_message)
+        if typing_cb:
+            typing_cb()
+
         question = self.ask_question(context, user_message)
+        if typing_cb:
+            typing_cb()
+
         options = self.get_options(context, user_message, question)
 
         context.messages += [
