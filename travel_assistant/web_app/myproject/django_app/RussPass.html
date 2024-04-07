@@ -1,14 +1,17 @@
-<!doctype html> 
-<html lang="ru"> 
-<head> 
-  <meta charset="utf-8" /> 
-  <title></title> 
-  <link rel="stylesheet" href="static/style.css" /> 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" /> 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" /> 
-</head> 
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8" />
+  <title></title>
+  <link rel="stylesheet" href="static/style.css" />
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+</head>
+
 <body>
-  
+
   <div class="row row-main">
     <div class="container container1">
       <nav class="menu">
@@ -23,10 +26,10 @@
       </nav>
 
       <section class="discussions">
-        
+
         <div class="discussion message-active">
           <div class="photo" style="background-image: url(static/Images/0037475_0.jpg);">
-            
+
           </div>
           <div class="desc-contact">
             <p class="name">Выставка кошек</p>
@@ -37,7 +40,7 @@
 
         <div class="discussion">
           <div class="photo" style="background-image: url(static/Images/impre.webp);">
-            
+
           </div>
           <div class="desc-contact">
             <p class="name">Музей русского импрессионизма</p>
@@ -58,7 +61,7 @@
 
         <div class="discussion">
           <div class="photo" style="background-image: url(static/Images/zotov_15.jpg);">
-            
+
           </div>
           <div class="desc-contact">
             <p class="name">Центр "Зотов"</p>
@@ -89,7 +92,7 @@
 
         <div class="discussion">
           <div class="photo" style="background-image: url(static/Images/florarium.jpeg);">
-            
+
           </div>
           <div class="desc-contact">
             <p class="name">Экскурсия "Флорариум"</p>
@@ -101,49 +104,50 @@
     </div>
     <div class="container container2">
       <section class="chat">
-        <div class="header-chat">
-          <i class="icon fa fa-user-o" aria-hidden="true"></i>
-          <p class="name">Борис</p>
-          <i class="icon clickable fa fa-ellipsis-h right" aria-hidden="true"></i>
-        </div>
+        
         <div class="messages-chat">
           <div class="message">
             <div class="photo" style="background-image: url(static/Images/Boris.jpeg);">
-              
+
             </div>
-            <p class="text">Здравствуйте, меня зовут Борис и я с радостью помогу Вам подобрать интересные варианты досуга! </p>
+            <p class="text">Здравствуйте, меня зовут Борис и я с радостью помогу Вам подобрать интересные варианты
+              досуга! </p>
           </div>
-          
-          <div class="message text-only">
+
+          <div class="message boris">
             <div class="response">
               <p class="text"> Привет, Борис! Я бы хотел прогуляться сегодня вечером, примерно с 16 до 23 </p>
             </div>
           </div>
-          <div class="message text-only">
+          <div class="message">
             <div class="response">
               <p class="text"> что ты можешь предложить?</p>
             </div>
           </div>
-          <p class="response-time time"> 15h04</p>
-          <div class="message">
+          <div class="message boris">
             <div class="photo" style="background-image: url(static/Images/Boris.jpeg);">
-              
+
             </div>
             <p class="text">Подскажите, пожалуйста, что Вас сегодня больше интересует?</p>
           </div>
-          <p class="time"> 15h09</p>
         </div>
         <div class="avtotvetmain">
           <button class="avtotvet">
-          Активный отдых
-        </button>
-        <button class="avtotvet">
-          Музеи/выставки
-        </button>
-      </div>
+            Архитектура
+          </button>
+          <button class="avtotvet">
+            Концерт
+          </button>
+          <button class="avtotvet">
+            Активный отдых
+          </button>
+          <button class="avtotvet">
+            Музеи/выставки
+          </button>
+        </div>
         <div class="footer-chat">
           <i class="icon fa fa-smile-o clickable" style="font-size:25pt;" aria-hidden="true"></i>
-          <input type="text" class="write-message" id="write-message" placeholder="Type your message here"></input>
+          <input type="text" class="write-message" id="write-message" placeholder="Написать ответ"></input>
           <i id="send-message" class="icon send fa fa-paper-plane-o clickable" aria-hidden="true"></i>
         </div>
       </section>
@@ -152,4 +156,5 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="static/main.js"></script>
 </body>
-</html> 
+
+</html>
