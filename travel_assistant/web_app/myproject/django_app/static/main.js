@@ -6,7 +6,7 @@ render_products = function(products) {
       <div class="discussion">
         <div class="photo" style="background-image: url(https://russpass.ru/mesta-i-sobytiya/_next/image?url=https://cms.russpass.ru/v1/file/${element.product.id}/924&w=750&q=75);"></div>
         <div class="desc-contact">
-          <a href="https://russpass.ru/event/${element.product.id}"><p class="name">${element.product.title}</p></a>
+          <a href="https://russpass.ru/event/${element.product.id}" target="_blank"><p class="name">${element.product.title}</p></a>
           <p class="message">${element.description}</p>
         </div>
         <button class="like">
