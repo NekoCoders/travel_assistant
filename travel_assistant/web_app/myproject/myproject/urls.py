@@ -21,4 +21,5 @@ from django_app import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.main_page),
+    path('send_message', views.form_send_message),
 ]

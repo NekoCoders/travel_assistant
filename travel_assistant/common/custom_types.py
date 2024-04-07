@@ -52,4 +52,6 @@ class ClientContext:
     def __init__(self, messages: Optional[List[Tuple[str, str]]] = None, interests: str = ""):
         if messages is None:
             self.messages = []
+        else:
+            self.messages = messages
         self.interests = interests

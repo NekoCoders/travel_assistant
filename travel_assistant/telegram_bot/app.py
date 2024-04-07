@@ -1,6 +1,6 @@
 import time
 from collections import defaultdict
-from typing import List
+from typing import List, Tuple
 
 import telebot
 from telebot import TeleBot
@@ -17,10 +17,10 @@ def start_listening_server(bot: TeleBot):
     bot.polling(none_stop=True, interval=0)
 
 
-def format_products(products: List[Product]) -> str:
+def format_products(products: List[Tuple[Product, str]]) -> str:
     message = "Вот что я нашел в каталоге RUSSPASS:\n\n"
-    for p in products:
-        message += f"{p.title}\nhttps://russpass.ru/event/{p.id}\n\n"
+    for p, reason in products:
+        message += f"{p.title}\nhttps://russpass.ru/event/{p.id}\n{reason}\n\n"
     return message
 
 
@@ -33,9 +33,16 @@ if __name__ == "__main__":
     def answer_message(message):
         try:
             if message.text == "/start":
-                context_by_chat_id[message.chat.id] = ClientContext()
-                text_to_send = "Здравствуйте, я Борис! Давайте я помогу вам подобрать досуг. Что Вас интересует?"
-                bot.send_message(message.chat.id, text_to_send)
+                text_to_send = "Здравствуйте, я Борис! Давайте я помогу вам подобрать досуг. Какие виды отдыха вам нравятся?"
+                context = ClientContext(messages=[("ai", text_to_send)])
+                options = assistant.get_options(context, "", "Какие виды отдыха вам нравятся?")
+                context_by_chat_id[message.chat.id] = context
+
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                for option in options:
+                    item = types.KeyboardButton(option)
+                    markup.add(item)
+                bot.send_message(message.chat.id, text_to_send, reply_markup=markup)
                 print(f"Started chat with {message.chat.username}")
             else:
                 old_context = context_by_chat_id[message.chat.id]
