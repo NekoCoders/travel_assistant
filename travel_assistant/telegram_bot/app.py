@@ -48,11 +48,14 @@ if __name__ == "__main__":
                     bot.send_message(message.chat.id, format_products(products))
                     time.sleep(1)
 
-                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-                for option in options:
-                    item = types.KeyboardButton(option)
-                    markup.add(item)
-                bot.send_message(message.chat.id, bot_question, reply_markup=markup)
+                if options:
+                    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                    for option in options:
+                        item = types.KeyboardButton(option)
+                        markup.add(item)
+                    bot.send_message(message.chat.id, bot_question, reply_markup=markup)
+                else:
+                    bot.send_message(message.chat.id, bot_question)
 
                 context_by_chat_id[message.chat.id] = new_context_by_chat_id
 

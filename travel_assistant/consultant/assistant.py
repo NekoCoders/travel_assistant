@@ -73,7 +73,10 @@ class Assistant:
             "chat_history": context.messages,
             "question": question
         })
-        options = json.loads(options)
+        try:
+            options = json.loads(options)
+        except:
+            options = None
 
         return options
 
