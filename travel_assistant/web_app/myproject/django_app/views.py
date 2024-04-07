@@ -4,12 +4,12 @@ from collections import defaultdict
 
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 
 from travel_assistant.common.custom_types import ClientContext
 from travel_assistant.consultant.assistant import Assistant
 
 
-# Create your views here.
 def main_page(request):
     return render(request, 'RussPass.html')
 
@@ -18,6 +18,7 @@ context_by_chat_id: dict[str, ClientContext] = defaultdict(ClientContext)
 assistant = Assistant(verbose=True)
 
 
+@csrf_exempt
 def form_send_message(request):
     # if this is a POST request we need to process the form data
     if request.method == "POST":
