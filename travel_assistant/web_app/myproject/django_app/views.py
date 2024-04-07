@@ -28,9 +28,9 @@ def form_send_message(request):
         old_context = context_by_chat_id[csrf]
         new_context_by_chat_id, bot_message, bot_question, options, products = assistant.chat_single(old_context,
                                                                                                      message_text)
-        for p in products:
+        for p, text_p in products:
             p.emb = None
-        ready_products = [dataclasses.asdict(p) for p in products]
+        ready_products = [{'product': dataclasses.asdict(p), 'description': d}  for p, d in products]
         response_data = {'message': bot_message + "\n" + bot_question, 'options': options, 'products': ready_products}
     else:
         response_data = {}

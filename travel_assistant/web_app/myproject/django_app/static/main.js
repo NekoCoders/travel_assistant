@@ -1,5 +1,5 @@
-$(document).ready(function () {
-  $("#send-message").on( "click", function() {
+
+send_message = function() {
     var messages_container = $(".messages-chat");
     var message_text = $("#write-message").val();
     var csrf = $("input[name=csrfmiddlewaretoken]").val();
@@ -16,6 +16,7 @@ $(document).ready(function () {
                 </div>
           </div>`;
     $(".messages-chat").append(message_to_append);
+    $('.messages-chat').scrollTop($('.messages-chat')[0].scrollHeight);
 
     $.ajax({
       type: "POST",
@@ -37,26 +38,26 @@ $(document).ready(function () {
     });
 
     $("#write-message").val("");
+}
 
+$(document).ready(function (event) {
+     $('#write-message').on('keypress', function (e) {
+         if(e.which === 13){
+
+            //Disable textbox to prevent multiple submit
+            $(this).attr("disabled", "disabled");
+
+            send_message();
+
+            //Enable the textbox again if needed.
+            $(this).removeAttr("disabled");
+            //event.preventDefault();
+         }
+   });
+
+  $("#send-message").on( "click", function(event) {
+        send_message();
+        //event.preventDefault();
   });
 
-  $("form").submit(function (event) {
-    var formData = {
-      name: $("#name").val(),
-      email: $("#email").val(),
-      superheroAlias: $("#superheroAlias").val(),
-    };
-
-    $.ajax({
-      type: "POST",
-      url: "process.php",
-      data: formData,
-      dataType: "json",
-      encode: true,
-    }).done(function (data) {
-      console.log(data);
-    });
-
-    event.preventDefault();
-  });
 });
