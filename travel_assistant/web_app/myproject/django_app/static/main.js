@@ -94,4 +94,10 @@ $(document).ready(function (event) {
         //event.preventDefault();
   });
 
+    $(".avtotvet").on( "click", function(event) {
+        var message_text = $("#write-message").val($(this).text());
+        send_message();
+        //event.preventDefault();
+  });
+
 });
