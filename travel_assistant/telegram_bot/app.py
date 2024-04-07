@@ -1,6 +1,6 @@
 import time
 from collections import defaultdict
-from typing import List
+from typing import List, Tuple
 
 import telebot
 from telebot import TeleBot
@@ -17,10 +17,10 @@ def start_listening_server(bot: TeleBot):
     bot.polling(none_stop=True, interval=0)
 
 
-def format_products(products: List[Product]) -> str:
+def format_products(products: List[Tuple[Product, str]]) -> str:
     message = "Вот что я нашел в каталоге RUSSPASS:\n\n"
-    for p in products:
-        message += f"{p.title}\nhttps://russpass.ru/event/{p.id}\n\n"
+    for p, reason in products:
+        message += f"{p.title}\nhttps://russpass.ru/event/{p.id}\n{reason}\n\n"
     return message
 
 

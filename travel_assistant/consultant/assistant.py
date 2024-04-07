@@ -12,7 +12,8 @@ from travel_assistant.common.custom_types import Product, ClientContext
 from travel_assistant.common.gigachat_api import AUTH_DATA
 from travel_assistant.consultant.agent_utils import create_agent
 from travel_assistant.consultant.assistant_prompts import system_ask, human_ask, system_options, \
-    human_options, bot_ask, bot_options, system_interests, bot_interests, human_interests
+    human_options, bot_ask, bot_options, system_interests, bot_interests, human_interests, system_reason, bot_reason, \
+    human_reason
 from travel_assistant.database.database import ProductDatabase
 
 
@@ -39,10 +40,27 @@ class Assistant:
         })
         return interests
 
-    def search_products(self, interests):
-        query = interests
+    def search_products(self, context: ClientContext, user_message) -> List[Tuple[Product, str]]:
+        query = context.interests
         products = self.database.search_best_offers(query)
-        return products
+        products_with_reasons = [(p, self.get_product_reason(context, user_message, p)) for p in products]
+        return products_with_reasons
+
+    def get_product_reason(self, context: ClientContext, user_message, product) -> str:
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_reason),
+            MessagesPlaceholder("chat_history", optional=True),
+            ("human", user_message),
+            ("ai", bot_reason),
+            ("human", human_reason),
+        ])
+        chain = prompt | self.llm | StrOutputParser()
+        reason = chain.invoke({
+            "chat_history": context.messages,
+            "interests": context.interests,
+            "product": product.full_text,
+        })
+        return reason
 
     def ask_question(self, context: ClientContext, user_message):
         prompt = ChatPromptTemplate.from_messages([
@@ -80,11 +98,11 @@ class Assistant:
 
         return options
 
-    def chat_single(self, context: ClientContext, user_message: str) -> Tuple[ClientContext, str, str, List[str], List[Product]]:
+    def chat_single(self, context: ClientContext, user_message: str) -> Tuple[ClientContext, str, str, List[str], List[Tuple[Product, str]]]:
         interests = self.get_interests(context, user_message)
         context.interests = interests
 
-        products = self.search_products(interests)
+        products = self.search_products(context, user_message)
         question = self.ask_question(context, user_message)
         options = self.get_options(context, user_message, question)
 
