@@ -84,6 +84,9 @@ body {
     
   }
   
+  .like {
+    margin: 10px 10px auto auto;
+  }
   .discussions .search {
     display:flex;
     align-items: center;
@@ -125,7 +128,6 @@ body {
   }
   
   .discussions .message-active {
-    width: 98.5%;
     height: 150px;
     background-color: #FFF;
     border-bottom: solid 1px #E0E0E0;
