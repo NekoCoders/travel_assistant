@@ -33,9 +33,16 @@ if __name__ == "__main__":
     def answer_message(message):
         try:
             if message.text == "/start":
-                context_by_chat_id[message.chat.id] = ClientContext()
-                text_to_send = "Здравствуйте, я Борис! Давайте я помогу вам подобрать досуг. Что Вас интересует?"
-                bot.send_message(message.chat.id, text_to_send)
+                text_to_send = "Здравствуйте, я Борис! Давайте я помогу вам подобрать досуг. Какие виды отдыха вам нравятся?"
+                context = ClientContext(messages=[("ai", text_to_send)])
+                options = assistant.get_options(context, "", "Какие виды отдыха вам нравятся?")
+                context_by_chat_id[message.chat.id] = context
+
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                for option in options:
+                    item = types.KeyboardButton(option)
+                    markup.add(item)
+                bot.send_message(message.chat.id, text_to_send, reply_markup=markup)
                 print(f"Started chat with {message.chat.username}")
             else:
                 old_context = context_by_chat_id[message.chat.id]
