@@ -46,6 +46,7 @@ send_message = function() {
           </div>`;
     $(".messages-chat").append(message_to_append);
     $('.messages-chat').scrollTop($('.messages-chat')[0].scrollHeight);
+    $('.text-typing').show();
 
     $.ajax({
       type: "POST",
@@ -56,6 +57,7 @@ send_message = function() {
       headers: {'X-CSRFToken': csrf},
       mode: 'same-origin' // Do not send CSRF token to another domain.
     }).done(function (data) {
+          $('.text-typing').hide();
           var message_to_append = `
             <div class="message">
                     <div class="photo" style="background-image: url(static/Images/Boris.jpeg);">
@@ -69,6 +71,7 @@ send_message = function() {
     });
 
     $("#write-message").val("");
+    $('.text-typing').hide();
 }
 
 $(document).ready(function (event) {
